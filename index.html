@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carduino HUB</title>
+    <style>
+        :root {
+            --deep-blue: #0a1f3d;
+            --accent-blue: #1a73e8;
+            --hover-blue: #1557b0;
+            --text-light: #e8f0fe;
+        }
+
+        body {
+            background: var(--deep-blue);
+            color: var(--text-light);
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .hub-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .nav-btn {
+            background: var(--accent-blue);
+            border: none;
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2rem;
+            transition: 0.3s;
+        }
+
+        .nav-btn:active {
+            background: var(--hover-blue);
+            transform: scale(0.95);
+        }
+
+        .status-panel {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        #liveMap {
+            height: 250px;
+            background: #000;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="hub-container">
+        <h1>Carduino HUB</h1>
+        
+        <div class="status-panel">
+            <div>Position: X:<span id="liveX">0</span> Y:<span id="liveY">0</span></div>
+            <div>Heading: <span id="liveHeading">0</span>°</div>
+            <div>Speed: <span id="liveSpeed">0</span> cm/s</div>
+        </div>
+
+        <div class="control-grid">
+            <button class="nav-btn" data-cmd="forward">▲ Forward</button>
+            <button class="nav-btn" data-cmd="rotate 90">↻ 90°</button>
+            <button class="nav-btn" data-cmd="left">◀ Left</button>
+            <button class="nav-btn" data-cmd="stop">⏹ Stop</button>
+            <button class="nav-btn" data-cmd="rotate 180">↺ 180°</button>
+            <button class="nav-btn" data-cmd="right">▶ Right</button>
+            <button class="nav-btn" data-cmd="back">▼ Back</button>
+            <button class="nav-btn" data-cmd="rotate 270">↺ 270°</button>
+            <button class="nav-btn" data-cmd="auto">🤖 Auto</button>
+        </div>
+
+        <div id="liveMap"></div>
+        <button id="voiceControl" class="nav-btn">🎤 Voice Command</button>
+    </div>
+
+    <script>
+        const API_ENDPOINT = "https://doctoru.github.io/Carduino-HUB/";
+        const DEVICE_ID = "Doctor_s_CarduinoV2";
+        let isAutoUpdate = true;
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('touchstart', sendCommand);
+        });
+
+        async function sendCommand(e) {
+            const cmd = e.target.dataset.cmd;
+            const url = `${API_ENDPOINT}control?device=${DEVICE_ID}&cmd=${cmd}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                updateDisplay(data);
+            } catch(error) {
+                console.error('Command error:', error);
+            }
+        }
+
+        function updateDisplay(data) {
+            document.getElementById('liveX').textContent = data.x.toFixed(1);
+            document.getElementById('liveY').textContent = data.y.toFixed(1);
+            document.getElementById('liveHeading').textContent = data.heading.toFixed(0);
+            updateMap(data.x, data.y);
+        }
+
+        function updateMap(x, y) {
+            const map = document.getElementById('liveMap');
+            map.style.backgroundPosition = `${x}% ${y}%`;
+        }
+
+        // Advanced Voice Recognition
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+
+        recognition.onresult = e => {
+            const transcript = e.results[e.results.length-1][0].transcript.toLowerCase();
+            const commands = {
+                'forward': 'forward', 'back': 'back', 
+                'left': 'left', 'right': 'right',
+                'stop': 'stop', 'auto': 'auto',
+                'rotate 90': 'rotate 90', 'spin around': 'rotate 180'
+            };
+            
+            for(const [key, cmd] of Object.entries(commands)) {
+                if(transcript.includes(key)) {
+                    document.querySelector(`[data-cmd="${cmd}"]`).click();
+                    break;
+                }
+            }
+        };
+
+        document.getElementById('voiceControl').addEventListener('touchstart', () => {
+            recognition.start();
+        });
+    </script>
+</body>
+</html>
