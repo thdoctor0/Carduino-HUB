@@ -1,152 +1,220 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carduino HUB</title>
+    <meta charset="utf-8">
+    <title>Carduino HUB - Voice Controlled Robotics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.1.1/darkly/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
-            --deep-blue: #0a1f3d;
-            --accent-blue: #1a73e8;
-            --hover-blue: #1557b0;
-            --text-light: #e8f0fe;
+            --carduino-blue: #2a9fd6;
+            --hover-blue: #2180ac;
+            --dark-bg: #1a1a1a;
         }
 
         body {
-            background: var(--deep-blue);
-            color: var(--text-light);
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 15px;
+            background: var(--dark-bg);
+            color: #fff;
+            min-height: 100vh;
         }
 
-        .hub-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .nav-btn {
-            background: var(--accent-blue);
+        .control-btn {
+            background: var(--carduino-blue);
             border: none;
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            font-size: 1.2rem;
-            transition: 0.3s;
+            padding: 1.5rem;
+            margin: 0.5rem;
+            border-radius: 15px;
+            transition: all 0.3s;
+            width: 100%;
         }
 
-        .nav-btn:active {
+        .control-btn:hover {
             background: var(--hover-blue);
-            transform: scale(0.95);
+            transform: scale(1.05);
         }
 
         .status-panel {
             background: rgba(255,255,255,0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
         }
 
-        #liveMap {
-            height: 250px;
-            background: #000;
+        #voice-control {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+        }
+
+        .command-feedback {
+            position: fixed;
+            bottom: 5rem;
+            right: 2rem;
+            background: var(--carduino-blue);
+            padding: 1rem;
             border-radius: 10px;
-            margin: 15px 0;
+            display: none;
         }
     </style>
 </head>
+
 <body>
-    <div class="hub-container">
-        <h1>Carduino HUB</h1>
-        
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <h1 class="display-4">Carduino HUB</h1>
+            <p class="lead">Voice-Controlled Autonomous Robotics Platform</p>
+        </div>
+
         <div class="status-panel">
-            <div>Position: X:<span id="liveX">0</span> Y:<span id="liveY">0</span></div>
-            <div>Heading: <span id="liveHeading">0</span>°</div>
-            <div>Speed: <span id="liveSpeed">0</span> cm/s</div>
+            <div class="row">
+                <div class="col-md-4">
+                    <h4>Navigation Data</h4>
+                    <p>Speed: <span id="liveSpeed">0</span> cm/s</p>
+                    <p>Position: X:<span id="posX">0</span> Y:<span id="posY">0</span></p>
+                </div>
+                <div class="col-md-4">
+                    <h4>Sensor Data</h4>
+                    <p>Distance: <span id="sensorDistance">0</span> cm</p>
+                    <p>Heading: <span id="heading">0</span>°</p>
+                </div>
+                <div class="col-md-4">
+                    <h4>System Status</h4>
+                    <p>Connection: <span id="connectionStatus">Online</span></p>
+                    <p>Battery: <span id="batteryLevel">100%</span></p>
+                </div>
+            </div>
         </div>
 
-        <div class="control-grid">
-            <button class="nav-btn" data-cmd="forward">▲ Forward</button>
-            <button class="nav-btn" data-cmd="rotate 90">↻ 90°</button>
-            <button class="nav-btn" data-cmd="left">◀ Left</button>
-            <button class="nav-btn" data-cmd="stop">⏹ Stop</button>
-            <button class="nav-btn" data-cmd="rotate 180">↺ 180°</button>
-            <button class="nav-btn" data-cmd="right">▶ Right</button>
-            <button class="nav-btn" data-cmd="back">▼ Back</button>
-            <button class="nav-btn" data-cmd="rotate 270">↺ 270°</button>
-            <button class="nav-btn" data-cmd="auto">🤖 Auto</button>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="control-grid">
+                    <button class="control-btn" data-cmd="forward">▲ Forward</button>
+                    <button class="control-btn" data-cmd="rotate 90">↻ 90°</button>
+                    <button class="control-btn" data-cmd="left">◀ Left</button>
+                    <button class="control-btn" data-cmd="stop">⏹ Emergency Stop</button>
+                    <button class="control-btn" data-cmd="rotate 180">↺ 180°</button>
+                    <button class="control-btn" data-cmd="right">▶ Right</button>
+                    <button class="control-btn" data-cmd="back">▼ Reverse</button>
+                    <button class="control-btn" data-cmd="auto">🤖 Auto Pilot</button>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="status-panel">
+                    <h4>Voice Command Log</h4>
+                    <div id="voice-log" class="mb-3" style="height: 200px; overflow-y: auto;">
+                        <p class="text-muted">No voice commands yet</p>
+                    </div>
+                    <button id="voice-control" class="btn btn-primary">🎤</button>
+                    <div class="command-feedback" id="commandFeedback"></div>
+                </div>
+            </div>
         </div>
-
-        <div id="liveMap"></div>
-        <button id="voiceControl" class="nav-btn">🎤 Voice Command</button>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script>
-        const API_ENDPOINT = "https://doctoru.github.io/Carduino-HUB/";
+        const API_ENDPOINT = "https://your-carduino-api.com";
         const DEVICE_ID = "Doctor_s_CarduinoV2";
-        let isAutoUpdate = true;
+        let recognition;
 
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('touchstart', sendCommand);
+        $(document).ready(function() {
+            initializeVoiceRecognition();
+            setInterval(updateSystemStatus, 2000);
         });
 
-        async function sendCommand(e) {
-            const cmd = e.target.dataset.cmd;
-            const url = `${API_ENDPOINT}control?device=${DEVICE_ID}&cmd=${cmd}`;
-            
+        function initializeVoiceRecognition() {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[event.results.length-1][0].transcript.toLowerCase();
+                handleVoiceCommand(transcript);
+            };
+
+            $('#voice-control').mousedown(function() {
+                recognition.start();
+                showFeedback("Listening...");
+            }).mouseup(function() {
+                recognition.stop();
+                hideFeedback();
+            });
+        }
+
+        function handleVoiceCommand(command) {
+            const actions = {
+                'forward': () => sendCommand('forward'),
+                'reverse': () => sendCommand('back'),
+                'left': () => sendCommand('left'),
+                'right': () => sendCommand('right'),
+                'stop': () => sendCommand('stop'),
+                'rotate 90': () => sendCommand('rotate 90'),
+                'rotate 180': () => sendCommand('rotate 180'),
+                'auto pilot': () => sendCommand('auto')
+            };
+
+            for(const [key, action] of Object.entries(actions)) {
+                if(command.includes(key)) {
+                    action();
+                    logVoiceCommand(command);
+                    showFeedback(`Executed: ${key}`);
+                    break;
+                }
+            }
+        }
+
+        async function sendCommand(command) {
             try {
-                const response = await fetch(url);
-                const data = await response.json();
-                updateDisplay(data);
+                const response = await fetch(`${API_ENDPOINT}/control`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        device: DEVICE_ID,
+                        command: command
+                    })
+                });
+                updateUI(await response.json());
             } catch(error) {
                 console.error('Command error:', error);
             }
         }
 
-        function updateDisplay(data) {
-            document.getElementById('liveX').textContent = data.x.toFixed(1);
-            document.getElementById('liveY').textContent = data.y.toFixed(1);
-            document.getElementById('liveHeading').textContent = data.heading.toFixed(0);
-            updateMap(data.x, data.y);
+        function updateUI(data) {
+            $('#liveSpeed').text(data.speed);
+            $('#posX').text(data.x.toFixed(1));
+            $('#posY').text(data.y.toFixed(1));
+            $('#heading').text(data.heading);
+            $('#sensorDistance').text(data.distance);
         }
 
-        function updateMap(x, y) {
-            const map = document.getElementById('liveMap');
-            map.style.backgroundPosition = `${x}% ${y}%`;
+        function logVoiceCommand(command) {
+            $('#voice-log').prepend(`<p>${new Date().toLocaleTimeString()}: ${command}</p>`);
         }
 
-        // Advanced Voice Recognition
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US';
-        recognition.continuous = true;
+        function showFeedback(text) {
+            $('#commandFeedback').text(text).fadeIn();
+        }
 
-        recognition.onresult = e => {
-            const transcript = e.results[e.results.length-1][0].transcript.toLowerCase();
-            const commands = {
-                'forward': 'forward', 'back': 'back', 
-                'left': 'left', 'right': 'right',
-                'stop': 'stop', 'auto': 'auto',
-                'rotate 90': 'rotate 90', 'spin around': 'rotate 180'
-            };
-            
-            for(const [key, cmd] of Object.entries(commands)) {
-                if(transcript.includes(key)) {
-                    document.querySelector(`[data-cmd="${cmd}"]`).click();
-                    break;
-                }
-            }
-        };
+        function hideFeedback() {
+            $('#commandFeedback').fadeOut();
+        }
 
-        document.getElementById('voiceControl').addEventListener('touchstart', () => {
-            recognition.start();
-        });
+        function updateSystemStatus() {
+            fetch(`${API_ENDPOINT}/status?device=${DEVICE_ID}`)
+                .then(response => response.json())
+                .then(data => {
+                    $('#batteryLevel').text(`${data.battery}%`);
+                    $('#connectionStatus').text(data.connected ? 'Online' : 'Offline');
+                });
+        }
     </script>
 </body>
 </html>
